@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>中学生向け 数学ドリル</title>
+  <style>
+    body {
+      font-family: 'Arial', sans-serif;
+      padding: 20px;
+      background: linear-gradient(to right, #f0f0f0, #e8f8ff);
+    }
+    h1, h2 {
+      color: #2c3e50;
+    }
+    .category-button {
+      margin: 5px;
+      padding: 12px 24px;
+      border: none;
+      background-color: #3498db;
+      color: white;
+      cursor: pointer;
+      border-radius: 8px;
+      transition: background-color 0.3s ease;
+    }
+    .category-button:hover {
+      background-color: #2980b9;
+    }
+    .question {
+      margin-bottom: 20px;
+      padding: 15px;
+      background-color: #ffffff;
+      border: 1px solid #ccc;
+      border-radius: 10px;
+      box-shadow: 2px 2px 5px rgba(0,0,0,0.05);
+      transition: transform 0.2s;
+    }
+    .question:hover {
+      transform: scale(1.01);
+    }
+    .answer {
+      display: none;
+      margin-top: 10px;
+      color: #16a085;
+      font-weight: bold;
+    }
+    .show-button {
+      margin-top: 10px;
+      cursor: pointer;
+      color: #2980b9;
+      text-decoration: underline;
+      border: none;
+      background: none;
+      font-size: 14px;
+    }
+    .controls {
+      margin: 10px 0;
+    }
+    .pagination {
+      margin-top: 20px;
+    }
+    .pagination button {
+      margin: 0 5px;
+      padding: 5px 10px;
+      border: none;
+      background-color: #bdc3c7;
+      color: white;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .pagination button:hover {
+      background-color: #95a5a6;
+    }
+  </style>
+</head>
+<body>
+  <h1>📘 中学生向け 数学ドリル</h1>
+  <h2>カテゴリを選んでください</h2>
+  <div id="category-menu">
+    <button class="category-button" onclick="loadCategory('arithmetic')">四則計算</button>
+    <button class="category-button" onclick="loadCategory('equation')">方程式</button>
+    <button class="category-button" onclick="loadCategory('function')">関数</button>
+    <button class="category-button" onclick="loadCategory('geometry')">図形</button>
+    <button class="category-button" onclick="loadCategory('data')">データ・確率</button>
+    <button class="category-button" onclick="loadCategory('challenge')">チャレンジ</button>
+    <button class="category-button" onclick="loadCategory('random')">ランダム出題</button>
+  </div>
+
+  <div class="controls">
+    <button onclick="toggleAllAnswers(true)">すべての答えを表示</button>
+    <button onclick="toggleAllAnswers(false)">すべての答えを隠す</button>
+  </div>
+
+  <div id="questions-container"></div>
+  <div class="pagination" id="pagination"></div>
+
+  <script>
+    const ITEMS_PER_PAGE = 10;
+    let currentCategory = null;
+    let currentPage = 0;
+
+    function randInt(min, max) {
+      return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateProblems(title, qGen, aGen, hint, count = 200) {
+      return Array.from({ length: count }, () => {
+        const x = randInt(1, 50), y = randInt(1, 50);
+        return {
+          q: `${title}：${qGen(x, y)}`,
+          a: `${aGen(x, y)}`,
+          hint
+        };
+      });
+    }
+
+    const categories = {
+      arithmetic: generateProblems('四則計算', (x, y) => `${x} + ${y}`, (x, y) => x + y, 'たし算の基本！'),
+      equation: generateProblems('方程式', (x, y) => `x + ${x} = ${x + x} のとき、x = ?`, (x, y) => x, '移項しよう！'),
+      function: generateProblems('関数', (x, y) => `y = ${x}x のとき x=${y} のとき y=?`, (x, y) => x * y, '比例の計算！'),
+      geometry: generateProblems('図形', (x, y) => `一辺が${x}cmの正方形の面積は？`, (x, y) => (x ** 2) + ' cm²', '面積 = 一辺 × 一辺'),
+      data: generateProblems('データ・確率', (x, y) => `1〜${x}の平均は？`, (x, y) => ((1 + x) * x) / 2 / x, '和 ÷ 個数'),
+      challenge: generateProblems('難問', (x, y) => `x² - ${2 * x}x + ${x ** 2} = 0 の解の一つは？`, (x, y) => x, '因数分解を使ってみよう')
+    };
+
+    categories.random = Object.values(categories).flat();
+
+    function loadCategory(category) {
+      currentCategory = category;
+      currentPage = 0;
+      renderPage();
+    }
+
+    function renderPage() {
+      const container = document.getElementById('questions-container');
+      const pagination = document.getElementById('pagination');
+      const items = categories[currentCategory];
+      container.innerHTML = `<h2>問題 - ${currentCategory}</h2>`;
+
+      const start = currentPage * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+
+      items.slice(start, end).forEach((item, index) => {
+        const div = document.createElement('div');
+        div.className = 'question';
+        div.innerHTML = `
+          <div><strong>Q${start + index + 1}:</strong> ${item.q}</div>
+          <input type="text" placeholder="答えを入力" style="margin-top: 10px;" onblur="checkAnswer(this, '${item.a}')">
+          <div class="answer">正解：${item.a}</div>
+        `;
+        container.appendChild(div);
+      });
+
+      pagination.innerHTML = '';
+      for (let i = 0; i < Math.ceil(items.length / ITEMS_PER_PAGE); i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i + 1;
+        btn.onclick = () => {
+          currentPage = i;
+          renderPage();
+        };
+        pagination.appendChild(btn);
+      }
+    }
+
+    function checkAnswer(input, correct) {
+      const answerDiv = input.nextElementSibling;
+      if (input.value == correct) {
+        answerDiv.style.display = 'block';
+        answerDiv.style.color = 'green';
+        answerDiv.textContent = '正解！答え：' + correct;
+      } else {
+        answerDiv.style.display = 'block';
+        answerDiv.style.color = 'red';
+        answerDiv.textContent = 'ちがうよ。正解は：' + correct;
+      }
+    }
+
+    function toggleAllAnswers(show) {
+      const answers = document.querySelectorAll('.answer');
+      answers.forEach(ans => ans.style.display = show ? 'block' : 'none');
+    }
+  </script>
+</body>
+</html>
